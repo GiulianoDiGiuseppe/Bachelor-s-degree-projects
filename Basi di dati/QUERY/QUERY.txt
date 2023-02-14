@@ -1,0 +1,91 @@
+
+--QUERY1
+--SELEZIONA DATA,DENOMINAZIONE_PROVINCIA E TOTALI CASI IN UNA DETERMINATA GIORNATA
+SELECT a.data , p.denominazione_provincia ,a.totale_casi
+FROM ANDAMENTO_PROVINCE A JOIN PROVINCE P ON A.codice_provincia=P.codice_provincia
+WHERE A.DATA = '10-APR-2020'
+ORDER BY P.denominazione_provincia ;
+
+
+--QUERY2
+--SELEZIONA LA PROVINCIA CON IL NUMERO MASSIMO DI CASI
+SELECT A.data , p.denominazione_provincia ,a.totale_casi
+FROM ANDAMENTO_PROVINCE A JOIN PROVINCE P ON A.codice_provincia=P.codice_provincia
+WHERE A.TOTALE_CASI=( --posso specificare anche una determinata giornata
+    SELECT MAX(totale_casi)
+    FROM ANDAMENTO_PROVINCE
+    );
+
+--QUERY3
+--SELEZIONA LE PROVINCE DI UNA REGIONE E I RELATIVI ABITANTI
+SELECT r.Denominazione_Regione ,p.denominazione_provincia , p.residenti
+FROM REGIONI R JOIN PROVINCE P ON R.Codice_Regione=P.COD_REGIONE
+WHERE R.DENOMINAZIONE_REGIONE='Campania' ;
+
+--QUERY4
+--SELEZIONA LE REGIONE E LA SOMMA DEI NUOVI POSITVI PER OGNUNA IN UN ARCO TEMPORALE
+SELECT  R.Denominazione_Regione ,SUM(A.nuovi_positivi) AS SOMMA_NUOVI_POSITIVI
+FROM REGIONI R JOIN ANDAMENTO_REGIONI A ON R.Codice_Regione=A.codice_regione
+WHERE A.DATA  BETWEEN '10-APR-2020' AND '20-APR-2020'
+GROUP BY R.Denominazione_Regione
+ORDER BY SUM(A.nuovi_positivi) DESC;
+
+--QUERY5
+--SELEZIONA LA PROVINCIA CON PIU' RESIDENTI RESIDENTI
+SELECT*
+FROM PROVINCE
+WHERE PROVINCE.residenti=(
+    SELECT MAX(PROVINCE.residenti)
+    FROM PROVINCE
+    ) ;
+
+--QUERY6
+-- SELEZIONA PER OGNI REGIONE IL NUMERO TAMPONI,TOTALE_CASI,DECEDUTI,DIMESSI_GUARITI
+-- FINO A UNA SPECIFICA DATA E ORDINA PER TAMPONI IN DECRESCENTE
+SELECT R.Denominazione_Regione , A.totale_casi ,A.deceduti ,A.dimessi_guariti , A.tamponi
+FROM ANDAMENTO_REGIONI A JOIN REGIONI R on A.codice_regione = R.CODICE_REGIONE
+WHERE  A.data ='20-APR-2020'
+ORDER BY A.tamponi DESC ;
+
+--QUERY7
+--SELEZIONA LA REGIONE CON IL NUMERO MAGGIORE DI PERSONE IN TERAPIA INTENSIVA
+--IN UN ARCO TEMPORALE
+SELECT A.DATA , R.Denominazione_Regione ,A.terapia_intensiva,  A.totale_casi ,
+       A.deceduti ,A.dimessi_guariti , A.tamponi
+FROM ANDAMENTO_REGIONI A JOIN REGIONI R on A.codice_regione = R.CODICE_REGIONE
+WHERE A.DATA  BETWEEN '1-APR-2020' AND '20-APR-2020' AND A.terapia_intensiva=(
+    SELECT MAX(a.TERAPIA_INTENSIVA)
+    FROM ANDAMENTO_REGIONI A JOIN REGIONI R on A.codice_regione = R.CODICE_REGIONE
+    WHERE A.DATA  BETWEEN '1-APR-2020' AND '20-APR-2020'
+    );
+
+--QUERY8
+--SELEZIONA LA TUPLA IN CUI IN LA 'CAMPANIA' HA IL NUMERO MASSIMO DI TOTALE OSPEDALIZZATI
+--IN UN ARCO TEMPORALE
+SELECT A.DATA , R.Denominazione_Regione ,A.totale_ospedalizzati  , A.terapia_intensiva,
+       A.totale_casi ,A.deceduti ,A.dimessi_guariti , A.tamponi
+FROM ANDAMENTO_REGIONI A JOIN REGIONI R on A.codice_regione = R.CODICE_REGIONE
+WHERE A.DATA  BETWEEN '1-APR-2020' AND '20-APR-2020'
+    AND R.Denominazione_Regione='Campania' and  A.TOTALE_OSPEDALIZZATI=(
+    SELECT MAX(a.totale_ospedalizzati)
+    FROM ANDAMENTO_REGIONI A JOIN REGIONI R on A.codice_regione = R.CODICE_REGIONE
+    WHERE A.DATA  BETWEEN '1-APR-2020' AND '20-APR-2020' AND
+          R.Denominazione_Regione='Campania'
+    );
+
+--QUERY9
+--SELEZIONA DATA,REGIONE,CONTAGI E DECEDUTI DELLA DATA CON IL PICCO DEI CONTAGIATI
+--DI UNA SPECIFICA REGIONE
+select ANDAMENTO_REGIONI.data as Data_Del_Picco,  REGIONI.Denominazione_Regione ,
+       ANDAMENTO_REGIONI.nuovi_positivi as Contagiati,
+       ANDAMENTO_REGIONI.deceduti as Deceduti
+from ANDAMENTO_REGIONI join REGIONI
+    on ANDAMENTO_REGIONI.codice_regione = REGIONI.codice_regione
+where REGIONI.denominazione_regione='Lombardia' and data = (
+    select ANDAMENTO_REGIONI.data
+    from ANDAMENTO_REGIONI
+    where ANDAMENTO_REGIONI.nuovi_positivi >= all (
+        select ANDAMENTO_REGIONI.nuovi_positivi
+        from ANDAMENTO_REGIONI
+        )
+    );
